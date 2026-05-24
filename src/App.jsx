@@ -302,7 +302,10 @@ function App() {
   }, [isAdmin, loadAccountData, refreshAdminBets, user]);
 
   const login = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'discord' });
+    await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: { redirectTo: window.location.origin },
+    });
   };
 
   const logout = async () => {
