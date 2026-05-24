@@ -35,6 +35,10 @@ tools/
 brain/
 skills/
 
+# Local AI working notes
+AGENTS.md
+project_structure/
+
 # Test and coverage output
 coverage/
 test-results/
