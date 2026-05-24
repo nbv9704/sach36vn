@@ -171,14 +171,17 @@
 - `.gitignore` standardized:
   - ignores `node_modules/`, `dist/`, `.env`, `.env.*`, `.vite/`, `node_modules/.vite/`, `.cache/`, `supabase/.temp/`, `supabase/.branches/`, `docs/`, `tools/`, `brain/`, `skills/`, coverage/test reports, `.vercel/`, `.netlify/`, editor/OS files.
   - ran `git rm -r --cached -- docs tools brain skills supabase/.temp .env` to untrack local-only artifacts while keeping local files.
+- GitHub publish completed:
+  - branch `main` pushed to `https://github.com/nbv9704/sach36vn.git`.
+  - used clean commit history based on `origin/main` so old local `.env` history was not pushed.
+  - `HEAD` does not track `.env`, `docs/`, `tools/`, `brain/`, `skills/`, or `supabase/.temp`.
 - Latest verification:
   - `npm run lint`: pass.
   - `npm run build`: pass.
   - build warning chunk > 500KB remains, not blocking.
 
 ### In Progress
-- GitHub publish in progress to `https://github.com/nbv9704/sach36vn.git` branch `main`.
-- Remote `origin/main` exists and does not contain `.env`; local old commit did contain `.env`, so publish should use a clean commit based on `origin/main` rather than pushing old local history.
+- None.
 
 ### Blocked
 - Automatic settlement from real match results still not implemented; settlement remains admin/manual.
@@ -201,10 +204,9 @@
   - do not set `VITE_MATCHBETTING_FUNCTION_URL` unless intentionally overriding function invocation.
 
 ## Next Steps
-- 1. Finish clean commit and push to GitHub `main`.
-- 2. Confirm `.env` is no longer tracked but local file still exists.
-- 3. Deploy frontend repo/app with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-- 4. Smoke test after deploy:
+- 1. Deploy frontend repo/app from GitHub `main` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- 2. Confirm `.env` remains local/ignored only when configuring hosting env vars.
+- 3. Smoke test after deploy:
   - login Discord.
   - wallet `/balance`.
   - feed live/upcoming.
@@ -213,8 +215,8 @@
   - Quick Bet.
   - My Bets/cashout.
   - Admin Results settlement.
-- 5. Optional later: code split/dynamic import to reduce build chunk warning.
-- 6. Optional later: implement automatic result settlement if reliable source found.
+- 4. Optional later: code split/dynamic import to reduce build chunk warning.
+- 5. Optional later: implement automatic result settlement if reliable source found.
 
 ## Critical Context
 - Project path: `D:\Discord Bots\Sach36VN`.
