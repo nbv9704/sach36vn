@@ -487,6 +487,38 @@ function getNumericField(record: JsonObject, keys: string[]): number | null {
   return null;
 }
 
+function getNestedRecord(record: JsonObject, keys: string[]): JsonObject | null {
+  for (const key of keys) {
+    const value = getField(record, key);
+    if (isRecord(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getClockMinute(clock: unknown): number | null {
+  if (!isRecord(clock)) {
+    return null;
+  }
+
+  const matchTime = getField(clock, 'match_time') ?? getField(clock, 'matchTime');
+  if (typeof matchTime === 'string') {
+    const match = matchTime.trim().match(/^(\d{1,3})(?::\d{1,2})?$/);
+    if (match) {
+      return Number(match[1]);
+    }
+  }
+
+  const seconds = getNumericField(clock, ['seconds', 'second', 's', 'value', 'time']);
+  if (seconds !== null && seconds > 0) {
+    return Math.floor(seconds / 60);
+  }
+
+  return null;
+}
+
 function getFootballMinute(event: JsonObject, desc: JsonObject): number | null {
   const directMinute = getNumericField(event, ['minute', 'match_minute', 'matchMinute', 'current_minute', 'currentMinute', 'game_minute', 'gameMinute'])
     ?? getNumericField(desc, ['minute', 'match_minute', 'matchMinute', 'current_minute', 'currentMinute', 'game_minute', 'gameMinute']);
@@ -495,15 +527,31 @@ function getFootballMinute(event: JsonObject, desc: JsonObject): number | null {
     return Math.max(0, Math.floor(directMinute));
   }
 
-  const timer = getField(event, 'timer') || getField(event, 'clock') || getField(desc, 'timer') || getField(desc, 'clock');
-  if (isRecord(timer)) {
-    const seconds = getNumericField(timer, ['seconds', 'second', 's', 'value', 'time']);
-    if (seconds !== null && seconds > 0) {
-      return Math.floor(seconds / 60);
-    }
+  const state = getNestedRecord(event, ['state']) || getNestedRecord(desc, ['state']);
+  const clockMinute = getClockMinute(getField(event, 'timer'))
+    ?? getClockMinute(getField(event, 'clock'))
+    ?? getClockMinute(getField(desc, 'timer'))
+    ?? getClockMinute(getField(desc, 'clock'))
+    ?? (state ? getClockMinute(getField(state, 'timer')) : null)
+    ?? (state ? getClockMinute(getField(state, 'clock')) : null);
+
+  if (clockMinute !== null) {
+    return Math.max(0, Math.floor(clockMinute));
   }
 
   return null;
+}
+
+function getFootballHalfFromMatchStatus(event: JsonObject, desc: JsonObject): string {
+  const state = getNestedRecord(event, ['state']) || getNestedRecord(desc, ['state']);
+  const status = state ? getNumericField(state, ['match_status', 'matchStatus', 'status']) : null;
+
+  if (status === 6) return '1st half';
+  if (status === 7) return '2nd half';
+  if (status === 31) return 'Half time';
+  if (status === 100) return 'Full time';
+
+  return '';
 }
 
 function getFootballPeriodFromScore(event: JsonObject): string {
@@ -534,7 +582,7 @@ function getFootballPeriodLabel(event: JsonObject, desc: JsonObject, type: Match
     : /1st|first|\b1h\b|half\s*1/i.test(rawPeriod) ? '1st half'
       : minute !== null && minute > 45 ? '2nd half'
         : minute !== null ? '1st half'
-          : '';
+          : getFootballHalfFromMatchStatus(event, desc);
 
   if (/half\s*time|halftime|half-time/i.test(rawPeriod)) return 'Half time';
   if (/full\s*time|finished|ended/i.test(rawPeriod)) return 'Full time';
