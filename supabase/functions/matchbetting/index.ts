@@ -487,6 +487,35 @@ function getNumericField(record: JsonObject, keys: string[]): number | null {
   return null;
 }
 
+function getTimestampMs(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  if (Number.isFinite(numericValue)) {
+    return numericValue > 100000000000 ? numericValue : numericValue * 1000;
+  }
+
+  const parsedValue = Date.parse(String(value));
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function getApproxFootballPeriodFromKickoff(event: JsonObject, desc: JsonObject): string {
+  const scheduledAt = getField(desc, 'scheduled') || getField(event, 'scheduled') || getField(event, 'start_time') || getField(event, 'startDate') || getField(event, 'start_date');
+  const kickoffMs = getTimestampMs(scheduledAt);
+  if (kickoffMs === null) return '';
+
+  const elapsedMinutes = Math.floor((Date.now() - kickoffMs) / 60000);
+  if (elapsedMinutes < 0) return 'Not started';
+  if (elapsedMinutes < 45) return `${Math.max(1, elapsedMinutes + 1)}' 1st half`;
+  if (elapsedMinutes < 60) return 'Half time';
+  if (elapsedMinutes < 105) return `${Math.max(46, elapsedMinutes - 14)}' 2nd half`;
+  if (elapsedMinutes < 120) return 'Extra time';
+
+  return 'Full time';
+}
+
 function getFootballMinute(event: JsonObject, desc: JsonObject): number | null {
   const directMinute = getNumericField(event, ['minute', 'match_minute', 'matchMinute', 'current_minute', 'currentMinute', 'game_minute', 'gameMinute'])
     ?? getNumericField(desc, ['minute', 'match_minute', 'matchMinute', 'current_minute', 'currentMinute', 'game_minute', 'gameMinute']);
@@ -523,6 +552,10 @@ function getFootballPeriodLabel(event: JsonObject, desc: JsonObject, type: Match
   if (/not\s*started|upcoming|prematch/i.test(rawPeriod)) return 'Not started';
   if (minute !== null && half) return `${minute}' ${half}`;
   if (half) return half;
+  if (!rawPeriod || lowerPeriod === 'live') {
+    const approximatePeriod = getApproxFootballPeriodFromKickoff(event, desc);
+    if (approximatePeriod) return approximatePeriod;
+  }
   if (rawPeriod) return rawPeriod;
 
   return type === 'live' ? 'Live' : 'Upcoming';
