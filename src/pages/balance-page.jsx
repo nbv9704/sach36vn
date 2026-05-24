@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useState } from 'react';
 import { CurrencyAmount, CurrencyIcon } from '../components/common/CurrencyAmount';
 import { Pagination } from '../components/common/Pagination';
 import { PageShell } from '../components/layout/FeedbackStates';
@@ -194,7 +194,7 @@ export function BalancePage({ loading, balance, bets, rewardsState, claimingRewa
             );
           })}
         </div>
-        <Pagination currentPage={taskPage} totalPages={totalTaskPages} onPageChange={(page) => setTaskPage(Math.min(Math.max(page, 1), totalTaskPages))} />
+        <Pagination currentPage={taskPage} totalPages={totalTaskPages} onPageChange={(page) => startTransition(() => setTaskPage(Math.min(Math.max(page, 1), totalTaskPages)))} />
       </section>
     </PageShell>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, startTransition, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BrowserRouter,
   Navigate,
@@ -10,10 +10,7 @@ import { supabase } from './lib/supabase';
 import { cashOutBet, claimTaskReward, claimTimeReward, getAdminBets, getBetHistory, getRewardsState, getWalletBalance, isCurrentUserAdmin, placeBet, settleBetLeg } from './lib/betting-service';
 import { FloatingBetslip } from './components/betting/FloatingBetslip';
 import { TopNavbar } from './components/layout/TopNavbar';
-import { CategoryPage, FavoritesPage, HomePage, LivePage, MatchDetailPage } from './pages/match-pages';
-import { MyBetsPage } from './pages/my-bets-page';
-import { BalancePage } from './pages/balance-page';
-import { AdminResultsPage } from './pages/admin-results-page';
+import { LoadingState } from './components/layout/FeedbackStates';
 import {
   findLatestSelectionOdd,
   getSelectionId,
@@ -23,19 +20,30 @@ import {
 
 const service = new MatchBettingService();
 
+const HomePage = lazy(() => import('./pages/match-pages').then((module) => ({ default: module.HomePage })));
+const LivePage = lazy(() => import('./pages/match-pages').then((module) => ({ default: module.LivePage })));
+const FavoritesPage = lazy(() => import('./pages/match-pages').then((module) => ({ default: module.FavoritesPage })));
+const CategoryPage = lazy(() => import('./pages/match-pages').then((module) => ({ default: module.CategoryPage })));
+const MatchDetailPage = lazy(() => import('./pages/match-pages').then((module) => ({ default: module.MatchDetailPage })));
+const BalancePage = lazy(() => import('./pages/balance-page').then((module) => ({ default: module.BalancePage })));
+const MyBetsPage = lazy(() => import('./pages/my-bets-page').then((module) => ({ default: module.MyBetsPage })));
+const AdminResultsPage = lazy(() => import('./pages/admin-results-page').then((module) => ({ default: module.AdminResultsPage })));
+
 function AppRoutes({ matchesByCategory, loading, error, refreshAll, onSelectOdd, selections, searchQuery, favoriteMatchIds, onToggleFavorite, quickBetFeedbackId, accountLoading, balance, bets, rewardsState, claimingRewardId, rewardError, onClaimTimeReward, onClaimTaskReward, onCashOut, cashingOutBetId, cashOutError, isAdmin, adminBets, adminBetsLoading, adminError, settlingLegId, onRefreshAdminBets, onSettleBetGroup }) {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
-      <Route path="/live" element={<LivePage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
-      <Route path="/favorites" element={<FavoritesPage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
-      <Route path="/category/:id" element={<CategoryPage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
-      <Route path="/match/:id" element={<MatchDetailPage matchesByCategory={matchesByCategory} onSelectOdd={onSelectOdd} selections={selections} quickBetFeedbackId={quickBetFeedbackId} />} />
-      <Route path="/balance" element={<BalancePage loading={accountLoading} balance={balance} bets={bets} rewardsState={rewardsState} claimingRewardId={claimingRewardId} rewardError={rewardError} onClaimTimeReward={onClaimTimeReward} onClaimTaskReward={onClaimTaskReward} />} />
-      <Route path="/my-bets" element={<MyBetsPage loading={accountLoading} bets={bets} onCashOut={onCashOut} cashingOutBetId={cashingOutBetId} cashOutError={cashOutError} />} />
-      <Route path="/admin/results" element={<AdminResultsPage accountLoading={accountLoading} isAdmin={isAdmin} adminBets={adminBets} adminBetsLoading={adminBetsLoading} adminError={adminError} settlingLegId={settlingLegId} onRefreshAdminBets={onRefreshAdminBets} onSettleBetGroup={onSettleBetGroup} />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<LoadingState />}>
+      <Routes>
+        <Route path="/" element={<HomePage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
+        <Route path="/live" element={<LivePage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
+        <Route path="/favorites" element={<FavoritesPage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
+        <Route path="/category/:id" element={<CategoryPage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
+        <Route path="/match/:id" element={<MatchDetailPage matchesByCategory={matchesByCategory} onSelectOdd={onSelectOdd} selections={selections} quickBetFeedbackId={quickBetFeedbackId} />} />
+        <Route path="/balance" element={<BalancePage loading={accountLoading} balance={balance} bets={bets} rewardsState={rewardsState} claimingRewardId={claimingRewardId} rewardError={rewardError} onClaimTimeReward={onClaimTimeReward} onClaimTaskReward={onClaimTaskReward} />} />
+        <Route path="/my-bets" element={<MyBetsPage loading={accountLoading} bets={bets} onCashOut={onCashOut} cashingOutBetId={cashingOutBetId} cashOutError={cashOutError} />} />
+        <Route path="/admin/results" element={<AdminResultsPage accountLoading={accountLoading} isAdmin={isAdmin} adminBets={adminBets} adminBetsLoading={adminBetsLoading} adminError={adminError} settlingLegId={settlingLegId} onRefreshAdminBets={onRefreshAdminBets} onSettleBetGroup={onSettleBetGroup} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -411,7 +419,7 @@ function App() {
   return (
     <BrowserRouter>
       <div className="min-h-[100dvh] bg-[#16181f] text-white">
-        <TopNavbar user={user} balance={balance} isAdmin={isAdmin} onLogin={login} onLogout={logout} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+        <TopNavbar user={user} balance={balance} isAdmin={isAdmin} onLogin={login} onLogout={logout} searchQuery={searchQuery} onSearchChange={(value) => startTransition(() => setSearchQuery(value))} />
         <main className="mx-auto max-w-[1440px] px-3 pb-24 pt-20 sm:px-5">
           {appRoutes}
         </main>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { startTransition, useState } from 'react';
 import { ChevronDown, History } from 'lucide-react';
 import { BET_DATE_FILTERS, BET_FILTERS, BETS_PER_PAGE } from '../config/app-config';
 import { CurrencyAmount, CurrencyIcon } from '../components/common/CurrencyAmount';
@@ -136,8 +136,10 @@ export function MyBetsPage({ loading, bets, onCashOut, cashingOutBetId, cashOutE
   if (loading) return <MyBetsSkeleton />;
 
   const selectDatePreset = (filter) => {
-    setDateFilter(filter);
-    setCurrentPage(1);
+    startTransition(() => {
+      setDateFilter(filter);
+      setCurrentPage(1);
+    });
     if (filter === 'Custom') {
       setDateFilterOpen(true);
       return;
@@ -172,7 +174,7 @@ export function MyBetsPage({ loading, bets, onCashOut, cashingOutBetId, cashOutE
       <div className="flex flex-col gap-3 rounded-md bg-[#22252e] p-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex gap-2 overflow-x-auto">
           {BET_FILTERS.map((filter) => (
-            <button key={filter} type="button" onClick={() => { setActiveFilter(filter); setCurrentPage(1); }} className={`shrink-0 rounded-md px-3 py-2 text-xs font-black uppercase ${activeFilter === filter ? 'bg-[#ffd200] text-black' : 'bg-[#1a1c24] text-[#8a8e99] hover:bg-[#2a2e38] hover:text-white'}`}>
+            <button key={filter} type="button" onClick={() => startTransition(() => { setActiveFilter(filter); setCurrentPage(1); })} className={`shrink-0 rounded-md px-3 py-2 text-xs font-black uppercase ${activeFilter === filter ? 'bg-[#ffd200] text-black' : 'bg-[#1a1c24] text-[#8a8e99] hover:bg-[#2a2e38] hover:text-white'}`}>
               {filter}
             </button>
           ))}
@@ -214,8 +216,8 @@ export function MyBetsPage({ loading, bets, onCashOut, cashingOutBetId, cashOutE
                     ))}
                   </div>
                   <div className="mt-6 grid grid-cols-2 gap-4">
-                    <button type="button" onClick={() => { setDateFilter('Recent Bets'); setDraftRange({ from: null, to: null }); setCustomRange({ from: null, to: null }); setDateFilterOpen(false); setCurrentPage(1); }} className="rounded-full bg-[#343541] px-4 py-3 text-xs font-black text-[#a7aab6]">Cancel</button>
-                    <button type="button" onClick={() => { setCustomRange(draftRange); setDateFilterOpen(false); setCurrentPage(1); }} disabled={!draftRange.from || !draftRange.to} className="rounded-full bg-[#343541] px-4 py-3 text-xs font-black text-[#a7aab6] disabled:cursor-not-allowed disabled:opacity-60">Show Results</button>
+                    <button type="button" onClick={() => startTransition(() => { setDateFilter('Recent Bets'); setDraftRange({ from: null, to: null }); setCustomRange({ from: null, to: null }); setDateFilterOpen(false); setCurrentPage(1); })} className="rounded-full bg-[#343541] px-4 py-3 text-xs font-black text-[#a7aab6]">Cancel</button>
+                    <button type="button" onClick={() => startTransition(() => { setCustomRange(draftRange); setDateFilterOpen(false); setCurrentPage(1); })} disabled={!draftRange.from || !draftRange.to} className="rounded-full bg-[#343541] px-4 py-3 text-xs font-black text-[#a7aab6] disabled:cursor-not-allowed disabled:opacity-60">Show Results</button>
                   </div>
                 </div>
               )}
@@ -237,9 +239,9 @@ export function MyBetsPage({ loading, bets, onCashOut, cashingOutBetId, cashOutE
               Showing {(safeCurrentPage - 1) * BETS_PER_PAGE + 1}-{Math.min(safeCurrentPage * BETS_PER_PAGE, filteredBets.length)} of {filteredBets.length}
             </p>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safeCurrentPage === 1} className="rounded bg-[#1a1c24] px-3 py-2 text-xs font-black uppercase text-white disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+              <button type="button" onClick={() => startTransition(() => setCurrentPage((page) => Math.max(1, page - 1)))} disabled={safeCurrentPage === 1} className="rounded bg-[#1a1c24] px-3 py-2 text-xs font-black uppercase text-white disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
               <span className="rounded bg-[#1a1c24] px-3 py-2 font-mono text-xs font-black text-[#ffd200]">{safeCurrentPage} / {totalPages}</span>
-              <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={safeCurrentPage === totalPages} className="rounded bg-[#1a1c24] px-3 py-2 text-xs font-black uppercase text-white disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+              <button type="button" onClick={() => startTransition(() => setCurrentPage((page) => Math.min(totalPages, page + 1)))} disabled={safeCurrentPage === totalPages} className="rounded bg-[#1a1c24] px-3 py-2 text-xs font-black uppercase text-white disabled:cursor-not-allowed disabled:opacity-40">Next</button>
             </div>
           </div>
         </>

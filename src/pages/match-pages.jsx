@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronDown, Flame, Search, Star } from 'lucide-react';
 import { PiClockCountdownFill } from 'react-icons/pi';
@@ -356,7 +356,7 @@ export function CategoryPage({ matchesByCategory, loading, error, onRetry, onSel
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {paginatedLive.map((match) => <StandardMatchCard key={match.id} match={match} live onSelectOdd={onSelectOdd} selections={selections} isFavorite={favoriteMatchIds.includes(match.id)} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />)}
             </div>
-            <Pagination currentPage={livePage} totalPages={totalLivePages} onPageChange={(page) => setLivePageState({ scope: pageScope, page })} />
+            <Pagination currentPage={livePage} totalPages={totalLivePages} onPageChange={(page) => startTransition(() => setLivePageState({ scope: pageScope, page }))} />
           </>
         ) : <EmptyMatches title={`No live ${meta.title} events`} />}
       </section>
@@ -371,7 +371,7 @@ export function CategoryPage({ matchesByCategory, loading, error, onRetry, onSel
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {paginatedUpcoming.map((match) => <StandardMatchCard key={match.id} match={match} onSelectOdd={onSelectOdd} selections={selections} isFavorite={favoriteMatchIds.includes(match.id)} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />)}
             </div>
-            <Pagination currentPage={upcomingPage} totalPages={totalUpcomingPages} onPageChange={(page) => setUpcomingPageState({ scope: pageScope, page })} />
+            <Pagination currentPage={upcomingPage} totalPages={totalUpcomingPages} onPageChange={(page) => startTransition(() => setUpcomingPageState({ scope: pageScope, page }))} />
           </>
         ) : <EmptyMatches title="No upcoming events in this feed" />}
       </section>
@@ -492,7 +492,7 @@ export function MatchDetailPage({ matchesByCategory, onSelectOdd, selections, qu
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => startTransition(() => setActiveTab(tab.id))}
               className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs font-black uppercase ${activeTab === tab.id ? 'bg-[#ffd200] text-black' : 'bg-[#22252e] text-[#8a8e99] hover:bg-[#2a2e38] hover:text-white'}`}
             >
               {tab.label}
@@ -505,7 +505,7 @@ export function MatchDetailPage({ matchesByCategory, onSelectOdd, selections, qu
           <Search size={16} className="shrink-0 text-[#8a8e99]" />
           <input
             value={marketSearch}
-            onChange={(event) => setMarketSearch(event.target.value)}
+            onChange={(event) => startTransition(() => setMarketSearch(event.target.value))}
             placeholder="Search markets or outcomes"
             className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-[#8a8e99]"
           />
