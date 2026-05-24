@@ -474,6 +474,68 @@ function getCurrentPeriodScore(score: unknown): string {
   return getScorePair(score);
 }
 
+function getNumericField(record: JsonObject, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = getField(record, key);
+    const numericValue = typeof value === 'number' ? value : Number(value);
+
+    if (Number.isFinite(numericValue)) {
+      return numericValue;
+    }
+  }
+
+  return null;
+}
+
+function getFootballMinute(event: JsonObject, desc: JsonObject): number | null {
+  const directMinute = getNumericField(event, ['minute', 'match_minute', 'matchMinute', 'current_minute', 'currentMinute', 'game_minute', 'gameMinute'])
+    ?? getNumericField(desc, ['minute', 'match_minute', 'matchMinute', 'current_minute', 'currentMinute', 'game_minute', 'gameMinute']);
+
+  if (directMinute !== null) {
+    return Math.max(0, Math.floor(directMinute));
+  }
+
+  const timer = getField(event, 'timer') || getField(event, 'clock') || getField(desc, 'timer') || getField(desc, 'clock');
+  if (isRecord(timer)) {
+    const seconds = getNumericField(timer, ['seconds', 'second', 's', 'value', 'time']);
+    if (seconds !== null && seconds > 0) {
+      return Math.floor(seconds / 60);
+    }
+  }
+
+  return null;
+}
+
+function getFootballPeriodLabel(event: JsonObject, desc: JsonObject, type: MatchType): string {
+  const rawPeriod = getString(getField(event, 'period_name'), getString(getField(event, 'periodName'), getString(getField(event, 'status_name'), getString(getField(event, 'status'), getString(getField(desc, 'status_name'), getString(getField(desc, 'status'), ''))))));
+  const lowerPeriod = rawPeriod.toLowerCase();
+  const minute = getFootballMinute(event, desc);
+  const half = /2nd|second|\b2h\b|half\s*2/i.test(rawPeriod) ? '2nd half'
+    : /1st|first|\b1h\b|half\s*1/i.test(rawPeriod) ? '1st half'
+      : minute !== null && minute > 45 ? '2nd half'
+        : minute !== null ? '1st half'
+          : '';
+
+  if (/half\s*time|halftime|half-time/i.test(rawPeriod)) return 'Half time';
+  if (/full\s*time|finished|ended/i.test(rawPeriod)) return 'Full time';
+  if (/extra\s*time/i.test(rawPeriod)) return minute !== null ? `${minute}' Extra time` : 'Extra time';
+  if (/penalt/i.test(rawPeriod)) return 'Penalties';
+  if (/not\s*started|upcoming|prematch/i.test(rawPeriod)) return 'Not started';
+  if (minute !== null && half) return `${minute}' ${half}`;
+  if (half) return half;
+  if (rawPeriod) return rawPeriod;
+
+  return type === 'live' ? 'Live' : 'Upcoming';
+}
+
+function getEventPeriodLabel(event: JsonObject, desc: JsonObject, sportId: unknown, type: MatchType): string {
+  if (Number(sportId) === 1) {
+    return getFootballPeriodLabel(event, desc, type);
+  }
+
+  return getString(getField(event, 'period_name'), getString(getField(event, 'periodName'), getString(getField(event, 'status_name'), getString(getField(event, 'status'), type === 'live' ? 'Live' : 'Upcoming'))));
+}
+
 function normalizeOutcome(outcome: JsonObject, market: JsonObject): NormalizedOdds {
   const rawOdds = getField(outcome, 'odds') ?? getField(outcome, 'price') ?? getField(outcome, 'k') ?? getField(outcome, 'value');
   const numericOdds = typeof rawOdds === 'number' ? rawOdds : Number(rawOdds);
@@ -553,7 +615,7 @@ function normalizeEvent(event: JsonObject, type: MatchType, descriptions: Market
     scheduledAt: getField(desc, 'scheduled') || getField(event, 'scheduled') || getField(event, 'start_time') || getField(event, 'startDate') || getField(event, 'start_date'),
     score: currentScore || normalizeScore(scoreValue),
     seriesScore,
-    period: getField(event, 'period_name') || getField(event, 'periodName') || getField(event, 'status_name') || getField(event, 'status') || (type === 'live' ? 'Live' : 'Upcoming'),
+    period: getEventPeriodLabel(event, desc, sportId, type),
     isLive: type === 'live' || Boolean(getField(event, 'live')),
     odds,
     mainOdds: mainOdds.length ? mainOdds : odds.slice(0, 3),

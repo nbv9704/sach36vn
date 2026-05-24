@@ -208,11 +208,11 @@ function getSoccerPeriodLabel(period) {
   if (/not\s*started/i.test(raw)) return 'Not started';
 
   // Try to extract minute and half from patterns like "1st half 31:00", "31' 1H", "2H 65:12", "1st half", etc.
-  const minuteMatch = raw.match(/(\d+)[':]/);
+  const minuteMatch = raw.match(/(?:^|\D)(\d{1,3})(?:\s*'|:|\s*(?:min|minute))/i);
   const minute = minuteMatch ? minuteMatch[1] : null;
 
-  const halfNumber = /\b1st|1h\b/i.test(raw) ? '1st half'
-    : /\b2nd|2h\b/i.test(raw) ? '2nd half'
+  const halfNumber = /\b(1st|1h)\b/i.test(raw) ? '1st half'
+    : /\b(2nd|2h)\b/i.test(raw) ? '2nd half'
       : /\bhalf\s*1\b/i.test(raw) ? '1st half'
         : /\bhalf\s*2\b/i.test(raw) ? '2nd half'
           : null;

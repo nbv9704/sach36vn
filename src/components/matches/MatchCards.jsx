@@ -93,6 +93,7 @@ export function HighlightMatchCard({ match, live = false, onSelectOdd, selection
   const { home, away } = splitTeams(match.title);
   const odds = firstOdds(match, 2);
   const [homeScore = '0', awayScore = '0'] = String(match.score || '0 - 0').split(/\s*-\s*/).slice(0, 2);
+  const currentPeriodLabel = getCurrentMapLabel(match.seriesScore || match.totalScore || match.matchScore, match.period, match.sport);
 
   return (
     <article className="relative h-full overflow-hidden rounded-lg bg-[radial-gradient(circle_at_top_left,#2b2d3a,#1d1f2a_62%)] p-3 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
@@ -101,6 +102,7 @@ export function HighlightMatchCard({ match, live = false, onSelectOdd, selection
           <p className="min-w-0 truncate">{match.sport} • {match.tournament}</p>
           <p className={`flex shrink-0 items-center gap-1 ${live ? 'text-[#ef4444]' : 'text-[#d8d9df]'}`}>{live ? <LiveSignal size={14} /> : formatTime(match.scheduledAt)}</p>
         </div>
+        {live && <p className="mt-2 text-xs font-black text-[#31a7ff]">{currentPeriodLabel}</p>}
 
         <div className="mt-7 grid grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] items-center gap-3">
           <div className="flex min-w-0 flex-col items-center text-center">
