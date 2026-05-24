@@ -1,8 +1,11 @@
+import { useEffect, useMemo, useState } from 'react';
 import { CurrencyAmount, CurrencyIcon } from '../components/common/CurrencyAmount';
+import { Pagination } from '../components/common/Pagination';
 import { PageShell } from '../components/layout/FeedbackStates';
 import { getEarnedStats, getSpentStats } from '../lib/match-utils';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const TASKS_PER_PAGE = 6;
 
 const TIME_REWARDS = [
   { id: 'daily', title: 'Daily Drop', amount: 25, cooldownMs: DAY_MS, note: 'Claim once every 24 hours.' },
@@ -44,10 +47,26 @@ const TASKS = [
 ];
 
 export function BalancePage({ balance, bets, rewardsState, claimingRewardId, rewardError, onClaimTimeReward, onClaimTaskReward }) {
+  const [now, setNow] = useState(0);
+  const [taskPage, setTaskPage] = useState(1);
   const spent = getSpentStats(bets);
   const earned = getEarnedStats(bets);
   const timeClaims = rewardsState?.timeRewards || {};
   const taskClaims = rewardsState?.taskClaims || {};
+  const totalTaskPages = Math.ceil(TASKS.length / TASKS_PER_PAGE);
+  const visibleTasks = useMemo(() => {
+    const startIndex = (taskPage - 1) * TASKS_PER_PAGE;
+    return TASKS.slice(startIndex, startIndex + TASKS_PER_PAGE);
+  }, [taskPage]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setNow(Date.now()), 0);
+    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   return (
     <PageShell>
@@ -106,7 +125,7 @@ export function BalancePage({ balance, bets, rewardsState, claimingRewardId, rew
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           {TIME_REWARDS.map((reward) => {
-            const status = getTimeRewardStatus(timeClaims[reward.id], reward.cooldownMs);
+            const status = getTimeRewardStatus(timeClaims[reward.id], reward.cooldownMs, now);
             const buttonText = claimingRewardId === reward.id ? 'Claiming...' : status.claimable ? 'Claim Now' : status.label;
 
             return (
@@ -133,12 +152,12 @@ export function BalancePage({ balance, bets, rewardsState, claimingRewardId, rew
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 className="text-sm font-black uppercase tracking-wide text-white">Tasks</h2>
-            <p className="mt-1 text-xs text-[#8a8e99]">30 one-time tasks. Claims are rechecked by Supabase before crediting balance.</p>
+            <p className="mt-1 text-xs text-[#8a8e99]">30 one-time tasks. Showing 6 cards per page.</p>
           </div>
           <p className="text-xs font-black uppercase text-[#ffd200]">{getClaimedCount(taskClaims)} / {TASKS.length} claimed</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {TASKS.map((task) => {
+          {visibleTasks.map((task) => {
             const progress = getTaskProgress(bets, task);
             const cappedProgress = Math.min(progress, task.target);
             const percent = Math.min(100, Math.round((cappedProgress / task.target) * 100));
@@ -173,12 +192,13 @@ export function BalancePage({ balance, bets, rewardsState, claimingRewardId, rew
             );
           })}
         </div>
+        <Pagination currentPage={taskPage} totalPages={totalTaskPages} onPageChange={(page) => setTaskPage(Math.min(Math.max(page, 1), totalTaskPages))} />
       </section>
     </PageShell>
   );
 }
 
-function getTimeRewardStatus(lastClaimedAt, cooldownMs) {
+function getTimeRewardStatus(lastClaimedAt, cooldownMs, now) {
   if (!lastClaimedAt) {
     return { claimable: true, label: 'Claim Now', lastClaimLabel: 'Never' };
   }
@@ -189,7 +209,7 @@ function getTimeRewardStatus(lastClaimedAt, cooldownMs) {
   }
 
   const nextClaimAt = claimedAt + cooldownMs;
-  const remainingMs = nextClaimAt - Date.now();
+  const remainingMs = nextClaimAt - now;
 
   return {
     claimable: remainingMs <= 0,
@@ -227,13 +247,16 @@ function formatProgress(progress, target) {
 }
 
 function formatDuration(ms) {
-  const totalHours = Math.max(1, Math.ceil(ms / (60 * 60 * 1000)));
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
-  if (days > 0 && hours > 0) return `${days}d ${hours}h`;
-  if (days > 0) return `${days}d`;
-  return `${hours}h`;
+  if (days > 0) return `${days}D ${hours}H ${minutes}M ${seconds}S`;
+  if (hours > 0) return `${hours}H ${minutes}M ${seconds}S`;
+  if (minutes > 0) return `${minutes}M ${seconds}S`;
+  return `${seconds}S`;
 }
 
 function getClaimedCount(taskClaims) {
