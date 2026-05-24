@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+
+# Production build output
+dist/
+dist-ssr/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vite / tool caches
+.vite/
+node_modules/.vite/
+.cache/
+.parcel-cache/
+
+# Supabase local/link state
+supabase/.temp/
+supabase/.branches/
+
+# Local capture / analysis artifacts
+docs/
+tools/
+brain/
+skills/
+
+# Test and coverage output
+coverage/
+test-results/
+playwright-report/
+
+# Hosting output/state
+.vercel/
+.netlify/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

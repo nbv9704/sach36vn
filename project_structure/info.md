@@ -1,0 +1,298 @@
+## Goal
+- Hoàn thiện và chuẩn bị deploy betting app Sach36VN dùng data thật từ Supabase/Betby, với UI betting-style, auth, wallet, đặt cược, cashout, admin settlement, full market detail, và cấu trúc code sạch.
+
+## Constraints & Preferences
+- Không dùng mock data cho matches/bets; dùng Supabase Edge Function/Betby và Supabase DB thật.
+- Project path: `D:\Discord Bots\Sach36VN`.
+- UI dense betting app, dark theme:
+  - app `#16181f`
+  - card `#22252e`
+  - hover `#2a2e38`
+  - odds `#1a1c24`
+  - accent `#ffd200`
+  - text primary `#ffffff`
+  - muted `#8a8e99`
+  - win `#10b981`
+  - loss `#ef4444`
+  - cashout `#f59e0b`
+- Typography: Inter, dense, uppercase subheadings, small text.
+- Tránh local Supabase Function/Docker nếu không cần; dùng Supabase Cloud Function đã deploy.
+- Betting/wallet-critical logic phải nằm backend/RPC, không tin client.
+- Quick Bet cần feedback animation: clicked odds button disable tạm, background vàng, tick, rồi reset.
+- Trước deploy cần `.gitignore` chuẩn, không push `docs/`, `tools/`, `brain/`, `skills/`, `.env`, local Supabase state, build output.
+
+## Progress
+### Done
+- Supabase project linked: `qxxgomvsvnluklssuggj`.
+- Edge Function `matchbetting` deployed nhiều lần thành công.
+- Database betting core đã làm:
+  - `profiles` table với `balance default 1000.00`.
+  - `bets` table với `selections`, `stake`, `total_odds`, `payout`, `status`, `settled_payout`, `settled_at`.
+  - RLS own-user select policies.
+  - trigger profile creation.
+  - RPC `get_wallet()`.
+  - RPC `place_bet(...)`.
+- Cashout đã làm:
+  - migration `202605230002_cash_out_bets.sql`.
+  - migration override `202605230005_cash_out_50_percent.sql`.
+  - RPC `cash_out_bet(p_bet_id uuid)`.
+  - cashout rule hiện tại: `50% stake`.
+  - UI `/my-bets` có cashout button.
+- Admin settlement đã làm:
+  - migration `202605230003_admin_settlement.sql`.
+  - `profiles.is_admin`.
+  - RPC `current_user_is_admin()`.
+  - RPC `list_admin_bets(status)`.
+  - leg-level settlement qua RPC `settle_bet_leg(p_bet_id uuid, p_selection_id text, p_status text)`.
+  - Admin Results group pending legs giống nhau theo `selection.id`, settle group apply cho tất cả pending legs trong group.
+- Cancelled/refund combo logic đã sửa:
+  - migration `202605230006_cancelled_leg_voids_odds.sql`.
+  - `Cancelled/Refund` leg void odds.
+  - nếu leg còn lại thắng thì payout = `stake * product(odds của các leg Won)`.
+  - nếu tất cả leg cancelled/refund thì hoàn stake.
+  - nếu bất kỳ leg lost thì bet lost.
+- My Bets đã chỉnh:
+  - pagination `15` cards/trang.
+  - filters status: `All`, `Open`, `Won`, `Lost`, `Cashed Out`, `Refund`; đã bỏ `Cancelled`.
+  - filter dropdown date: `Today`, `For Week`, `For Month`, `Recent Bets` mặc định, `Custom`.
+  - Custom calendar chọn `from` rồi `to`, `Show Results`, `Cancel`.
+  - ticket-style cards, combo collapse/expand, progress bar, copy Ticket ID.
+- Balance page đã thêm route `/balance`, navbar balance link, current balance, spent/earned 24H/7D/30D, rewards/tasks UI.
+- Navigation/routes:
+  - bỏ `Dota 2`, `Basketball`.
+  - routes: `/`, `/live`, `/favorites`, `/category/:id`, `/match/:id`, `/my-bets`, `/balance`, `/admin/results`.
+  - Home hiển thị cả Live + Upcoming.
+  - Live chỉ live.
+  - Favorites tách Live Favorites trước, Upcoming Favorites sau.
+  - avatar user link `/my-bets`.
+  - logo `/favicon.png` link `/`.
+- Favorites:
+  - star button trên match cards.
+  - lưu `localStorage` key `sach36vn.favoriteMatchIds`.
+- Auto refresh:
+  - app refetch match feed mỗi `60s`.
+  - match detail refetch chi tiết mỗi `10s` live, `30s` prematch.
+  - betslip selections cập nhật odds sau refetch nếu chưa place bet.
+- Quick Bet:
+  - panel cấu hình stake.
+  - presets `5 / 20 / 50 / 100`.
+  - custom input.
+  - click odds đặt bet ngay với stake hiện tại.
+  - feedback button: disable tạm, bg vàng, tick, transition, reset sau `900ms`.
+- Currency:
+  - dùng `public/currency.png`.
+  - component `CurrencyIcon`, `CurrencyAmount`.
+  - navbar balance, betslip payout, My Bets, Balance, Admin Results dùng currency image.
+- Favicon/logo:
+  - `index.html` fixed `<link rel="icon" type="image/png" href="/favicon.png" />`.
+  - navbar logo dùng `/favicon.png`.
+- Live indicator:
+  - dùng `HiSignal` màu đỏ + `pulse-live`.
+  - `LiveSignal` component.
+- Match card UI:
+  - `HighlightMatchCard`, `StandardMatchCard`, `TeamLogo`, `OddsButton`.
+  - odds button overflow đã fix bằng `min-w-0`, `truncate`, `shrink-0`, grid `minmax(0,1fr)`.
+- Betby score:
+  - Edge Function cố gắng tách current period/map score từ `period_scores`, `current_score`, `game_score`, `map_score`, `period_score`.
+  - `seriesScore` dùng total/match score cho esports.
+  - football `sportId === 1` không trả `seriesScore`.
+- Market descriptions:
+  - dùng Betby descriptions endpoint `/api/v3/descriptions/brand/{BRAND_ID}/markets/{LANGUAGE}`.
+  - resolver template hỗ trợ `{$competitor1}`, `{$competitor2}`, `{!mapnr}`, `{total}`, `{hcp}`.
+  - đã sửa thêm placeholder:
+    - `{{Minute-1}}`
+    - `{(Minute-1)}`
+    - `{Minute}`
+    - case-insensitive variant lookup.
+    - `{!Gamenr}`.
+  - Cloud test `prematch` all: `badCount=0` cho placeholders `{`, `Minute`.
+- Full event detail:
+  - endpoint đúng: `/api/v4/prematch/brand/{BRAND_ID}/event/{LANGUAGE}/{eventId}`.
+  - live equivalent: `/api/v4/live/brand/{BRAND_ID}/event/{LANGUAGE}/{eventId}`.
+  - Cloud test example `Karmine Corp vs G2 Esports`: full detail `873 odds`, `28 markets`; snapshot chỉ `44 odds`, `6 markets`.
+  - `MatchDetailPage` fetches full event detail by event id.
+  - cached upcoming dùng `type='prematch'`, cached live dùng `type='live'`.
+  - detail page loading fixed: khi initial detail fetch đang chạy thì show skeleton, không render snapshot odds ít; cached match chỉ fallback nếu fetch lỗi.
+- Prematch pagination/chunks:
+  - Edge Function bug fixed: Betby `top_events_versions/rest_events_versions` là array number, helper cũ bỏ qua.
+  - `asUnknownArray` added.
+  - snapshot fetch giới hạn `.slice(0, 5)`.
+  - deployed; test:
+    - `prematch`: khoảng `1859`/`1667` events tùy thời điểm, `5` versions.
+    - `prematch/csgo`: ~37-38.
+    - `prematch/football`: ~701.
+- Market detail ordering/grouping:
+  - Over/Under sort theo line tăng dần.
+  - handicap sort theo đội: cột trái team 1, cột phải team 2; line theo độ lớn giảm dần.
+  - handicap layout 2 cột.
+  - market group sort theo `Map N`, rồi `Winner`, `Total`, `Handicap`, khác.
+  - `getMarketGroupName` now groups variants:
+    - `Total Maps N` -> `Total Maps`.
+    - `Map Handicap N` -> `Map Handicap`.
+    - `Total Kills N` -> `Total Kills`.
+    - `Kills Handicap N` -> `Kills Handicap`.
+  - Fix tab `Match` thừa card:
+    - với data thật LoL detail: trước `59` groups, sau `8` groups.
+- Match detail tabs/search:
+  - bỏ tab `Bet Builder`.
+  - tabs tạo động theo data thật:
+    - `Main`
+    - `Match`
+    - `Map 1`…`Map N`.
+  - tab count theo số market group thật.
+  - `Match` là market không thuộc `Map N`.
+  - search bar bên phải tabs, search theo market/outcome.
+- Code refactor:
+  - `src\App.jsx` giảm còn khoảng `366` dòng.
+  - Tách:
+    - `src/config/app-config.js`
+    - `src/config/navigation.jsx`
+    - `src/lib/match-utils.js`
+    - `src/components/common/CurrencyAmount.jsx`
+    - `src/components/common/LiveSignal.jsx`
+    - `src/components/common/Pagination.jsx`
+    - `src/components/matches/TeamLogo.jsx`
+    - `src/components/matches/OddsButton.jsx`
+    - `src/components/matches/MatchCards.jsx`
+    - `src/components/layout/TopNavbar.jsx`
+    - `src/components/layout/FeedbackStates.jsx`
+    - `src/components/betting/FloatingBetslip.jsx`
+    - `src/pages/match-pages.jsx`
+    - `src/pages/my-bets-page.jsx`
+    - `src/pages/balance-page.jsx`
+    - `src/pages/admin-results-page.jsx`
+- Mock/dead files cleanup:
+  - deleted `src/data/mockData.ts`.
+  - deleted Vite template dead files:
+    - `src/App.css`
+    - `src/assets/vite.svg`
+    - `src/assets/react.svg`
+    - `src/assets/hero.png`
+- `.gitignore` standardized:
+  - ignores `node_modules/`, `dist/`, `.env`, `.env.*`, `.vite/`, `node_modules/.vite/`, `.cache/`, `supabase/.temp/`, `supabase/.branches/`, `docs/`, `tools/`, `brain/`, `skills/`, coverage/test reports, `.vercel/`, `.netlify/`, editor/OS files.
+  - ran `git rm -r --cached -- docs tools brain skills supabase/.temp .env` to untrack local-only artifacts while keeping local files.
+- Latest verification:
+  - `npm run lint`: pass.
+  - `npm run build`: pass.
+  - build warning chunk > 500KB remains, not blocking.
+
+### In Progress
+- GitHub publish in progress to `https://github.com/nbv9704/sach36vn.git` branch `main`.
+- Remote `origin/main` exists and does not contain `.env`; local old commit did contain `.env`, so publish should use a clean commit based on `origin/main` rather than pushing old local history.
+
+### Blocked
+- Automatic settlement from real match results still not implemented; settlement remains admin/manual.
+- Build chunk warning > 500KB remains; not blocking deploy.
+
+## Key Decisions
+- Use Supabase Cloud Function, not local Docker, for `matchbetting`.
+- Use Supabase RPCs for wallet/betting/cashout/settlement to prevent client tampering.
+- Keep placed bets/wallet in Supabase DB; betslip/favorites are client state/localStorage.
+- Cashout rule is fixed backend-side at `50% stake`.
+- Settlement is leg-level; combo resolves based on each selection status.
+- `Cancelled/Refund` legs void odds rather than losing/refunding whole combo if other legs can still win.
+- Admin Results groups identical pending selections so one action settles all matching pending legs.
+- Board cards use snapshot data; Match Detail uses full event endpoint for complete markets.
+- Market descriptions should come from Betby descriptions endpoint, not hardcoded UI labels.
+- Frontend deploy is one repo/app only; backend is Supabase Cloud project/functions/RPCs already deployed.
+- Hosting env vars needed:
+  - `VITE_SUPABASE_URL=https://qxxgomvsvnluklssuggj.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=...`
+  - do not set `VITE_MATCHBETTING_FUNCTION_URL` unless intentionally overriding function invocation.
+
+## Next Steps
+- 1. Finish clean commit and push to GitHub `main`.
+- 2. Confirm `.env` is no longer tracked but local file still exists.
+- 3. Deploy frontend repo/app with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- 4. Smoke test after deploy:
+  - login Discord.
+  - wallet `/balance`.
+  - feed live/upcoming.
+  - match detail full odds/tabs/search.
+  - place normal bet.
+  - Quick Bet.
+  - My Bets/cashout.
+  - Admin Results settlement.
+- 5. Optional later: code split/dynamic import to reduce build chunk warning.
+- 6. Optional later: implement automatic result settlement if reliable source found.
+
+## Critical Context
+- Project path: `D:\Discord Bots\Sach36VN`.
+- Supabase project ref: `qxxgomvsvnluklssuggj`.
+- Supabase URL: `https://qxxgomvsvnluklssuggj.supabase.co`.
+- Edge Function: `supabase/functions/matchbetting/index.ts`.
+- Betby defaults:
+  - `BETBY_BASE_URL=https://api-h-c7818b61-608.sptpub.com`
+  - `BETBY_BRAND_ID=2432911154364948480`
+  - `BETBY_LANGUAGE=en`
+- Supabase CLI command may need:
+  - `& "$env:USERPROFILE\scoop\shims\supabase.exe" ...`
+- Deploy function:
+  - `& "$env:USERPROFILE\scoop\shims\supabase.exe" functions deploy matchbetting`
+- Push migrations:
+  - `& "$env:USERPROFILE\scoop\shims\supabase.exe" db push`
+- Full event detail endpoint:
+  - `/api/v4/prematch/brand/{BRAND_ID}/event/{LANGUAGE}/{eventId}`
+  - `/api/v4/live/brand/{BRAND_ID}/event/{LANGUAGE}/{eventId}`
+- Captured/full detail example:
+  - event id `2665449802346663938`
+  - title `Karmine Corp vs G2 Esports`
+  - full detail returns `oddsCount=873`, 28 markets.
+  - snapshot only had `oddsCount=44`, markets `186`, `327`, `328`, `330`, `557`, `558`.
+- Important local capture files now ignored/untracked:
+  - `D:\Discord Bots\Sach36VN\docs\analysis-2026-05-23T12-45-14-225Z.md`
+  - `D:\Discord Bots\Sach36VN\docs\csgoempire-network-2026-05-23T12-45-13-585Z.json`
+  - `D:\Discord Bots\Sach36VN\docs\csgoempire-websocket-2026-05-23T12-45-13-585Z.json`
+- `.env` local contains:
+  - `VITE_SUPABASE_URL=https://qxxgomvsvnluklssuggj.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=...`
+  - now ignored/untracked.
+- Discord auth configured earlier and working.
+- To grant admin:
+  - `update public.profiles set is_admin = true where id = 'USER_UUID_HERE';`
+- Local Supabase function/Docker previously failed:
+  - `POST http://localhost:54321/functions/v1/matchbetting net::ERR_CONNECTION_REFUSED`
+  - `Docker Desktop is a prerequisite for local development`
+- Browser cache favicon issue fixed with PNG MIME type.
+- Build warning:
+  - `Some chunks are larger than 500 kB after minification`; not blocking.
+- Latest counts:
+  - `src\App.jsx lines=366`
+  - `src\pages\match-pages.jsx lines=523`
+  - `src\lib\match-utils.js lines=302`
+
+## Relevant Files
+- `D:\Discord Bots\Sach36VN\.gitignore`: updated to ignore local artifacts, env, build, docs/tools/brain/skills, Supabase local state.
+- `D:\Discord Bots\Sach36VN\src\App.jsx`: app shell/router/global state/auth/fetching/bet handlers/quickbet composition.
+- `D:\Discord Bots\Sach36VN\src\index.css`: Tailwind/imports/design tokens/scrollbar/skeleton/pulse styles.
+- `D:\Discord Bots\Sach36VN\src\pages\match-pages.jsx`: Home/Live/Favorites/Category/Match Detail, tabs/search, market sort/filter/order.
+- `D:\Discord Bots\Sach36VN\src\pages\my-bets-page.jsx`: My Bets UI, filters/date calendar/pagination/ticket cards.
+- `D:\Discord Bots\Sach36VN\src\pages\balance-page.jsx`: Balance page UI/stats/rewards/tasks.
+- `D:\Discord Bots\Sach36VN\src\pages\admin-results-page.jsx`: Admin settlement page/grouped pending legs.
+- `D:\Discord Bots\Sach36VN\src\components\common\Pagination.jsx`: category pagination component.
+- `D:\Discord Bots\Sach36VN\src\components\common\CurrencyAmount.jsx`: currency icon/amount.
+- `D:\Discord Bots\Sach36VN\src\components\common\LiveSignal.jsx`: live pulse icon.
+- `D:\Discord Bots\Sach36VN\src\components\layout\TopNavbar.jsx`: navbar/search/login/balance/admin link.
+- `D:\Discord Bots\Sach36VN\src\components\layout\FeedbackStates.jsx`: `PageShell`, loading/error/empty states.
+- `D:\Discord Bots\Sach36VN\src\components\betting\FloatingBetslip.jsx`: betslip and Quick Bet UI.
+- `D:\Discord Bots\Sach36VN\src\components\matches\MatchCards.jsx`: `StandardMatchCard`, `HighlightMatchCard`.
+- `D:\Discord Bots\Sach36VN\src\components\matches\OddsButton.jsx`: reusable odds button with selected/quickbet feedback.
+- `D:\Discord Bots\Sach36VN\src\components\matches\TeamLogo.jsx`: team initials avatar.
+- `D:\Discord Bots\Sach36VN\src\config\app-config.js`: category/meta/bet filter constants.
+- `D:\Discord Bots\Sach36VN\src\config\navigation.jsx`: sport nav config/icons.
+- `D:\Discord Bots\Sach36VN\src\lib\match-utils.js`: sort/filter matches, odds grouping, market group name normalization, bet stats/date helpers, favorites helper.
+- `D:\Discord Bots\Sach36VN\src\lib\matchbetting-service.js`: frontend match adapter, categories, `getMatches`, `getEventDetails`, score formatting.
+- `D:\Discord Bots\Sach36VN\src\lib\csgoempire-client.js`: Supabase function invoker; `getSnapshot`, `getEventDetails`; supports optional `VITE_MATCHBETTING_FUNCTION_URL`.
+- `D:\Discord Bots\Sach36VN\src\lib\supabase.js`: Supabase client env config.
+- `D:\Discord Bots\Sach36VN\src\lib\betting-service.js`: DB service for wallet/history/place/cashout/admin/leg settlement.
+- `D:\Discord Bots\Sach36VN\supabase\functions\matchbetting\index.ts`: Betby proxy/normalizer; snapshot/detail endpoints; descriptions; placeholders; scores; 5 chunk prematch snapshot.
+- `D:\Discord Bots\Sach36VN\supabase\migrations\202605230001_betting_core.sql`: profiles/bets/RLS/triggers/base RPCs.
+- `D:\Discord Bots\Sach36VN\supabase\migrations\202605230002_cash_out_bets.sql`: initial cashout/settled_payout.
+- `D:\Discord Bots\Sach36VN\supabase\migrations\202605230003_admin_settlement.sql`: admin profile/RPCs.
+- `D:\Discord Bots\Sach36VN\supabase\migrations\202605230004_leg_settlement.sql`: settlement by selection/leg.
+- `D:\Discord Bots\Sach36VN\supabase\migrations\202605230005_cash_out_50_percent.sql`: cashout changed to 50%.
+- `D:\Discord Bots\Sach36VN\supabase\migrations\202605230006_cancelled_leg_voids_odds.sql`: cancelled/refund leg voids odds logic.
+- `D:\Discord Bots\Sach36VN\index.html`: favicon PNG MIME.
+- `D:\Discord Bots\Sach36VN\package.json`: scripts/dependencies include `react-icons`, Supabase, Vite.
+- `D:\Discord Bots\Sach36VN\public\favicon.png`: navbar logo/favicon.
+- `D:\Discord Bots\Sach36VN\public\currency.png`: currency icon.
