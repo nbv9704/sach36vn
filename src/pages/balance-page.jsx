@@ -46,7 +46,7 @@ const TASKS = [
   { id: 'market_total_5', title: 'Totals Player', description: 'Place 5 total-market bets.', target: 5, reward: 30, type: 'marketCount', pattern: /total/i },
 ];
 
-export function BalancePage({ balance, bets, rewardsState, claimingRewardId, rewardError, onClaimTimeReward, onClaimTaskReward }) {
+export function BalancePage({ loading, balance, bets, rewardsState, claimingRewardId, rewardError, onClaimTimeReward, onClaimTaskReward }) {
   const [now, setNow] = useState(0);
   const [taskPage, setTaskPage] = useState(1);
   const spent = getSpentStats(bets);
@@ -67,6 +67,8 @@ export function BalancePage({ balance, bets, rewardsState, claimingRewardId, rew
       window.clearInterval(intervalId);
     };
   }, []);
+
+  if (loading) return <BalanceSkeleton />;
 
   return (
     <PageShell>
@@ -261,4 +263,39 @@ function formatDuration(ms) {
 
 function getClaimedCount(taskClaims) {
   return Object.keys(taskClaims || {}).length;
+}
+
+function BalanceSkeleton() {
+  return (
+    <PageShell>
+      <div className="flex items-center gap-3">
+        <div className="h-8 w-8 rounded-full bg-[#22252e] skeleton-shimmer" />
+        <div className="space-y-2">
+          <div className="h-8 w-40 rounded bg-[#22252e] skeleton-shimmer" />
+          <div className="h-4 w-72 max-w-[70vw] rounded bg-[#22252e] skeleton-shimmer" />
+        </div>
+      </div>
+
+      <section className="grid gap-3 lg:grid-cols-[1.1fr_1.9fr]">
+        <div className="h-40 rounded-md bg-[#22252e] skeleton-shimmer" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-28 rounded-md bg-[#22252e] skeleton-shimmer" />)}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 h-5 w-36 rounded bg-[#22252e] skeleton-shimmer" />
+        <div className="grid gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-40 rounded-md bg-[#22252e] skeleton-shimmer" />)}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 h-5 w-24 rounded bg-[#22252e] skeleton-shimmer" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-44 rounded-md bg-[#22252e] skeleton-shimmer" />)}
+        </div>
+      </section>
+    </PageShell>
+  );
 }

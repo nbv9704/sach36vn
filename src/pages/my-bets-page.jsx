@@ -110,7 +110,7 @@ function BetHistoryCard({ bet, onCashOut, cashingOut }) {
   );
 }
 
-export function MyBetsPage({ bets, onCashOut, cashingOutBetId, cashOutError }) {
+export function MyBetsPage({ loading, bets, onCashOut, cashingOutBetId, cashOutError }) {
   const [activeFilter, setActiveFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [dateFilterOpen, setDateFilterOpen] = useState(false);
@@ -132,6 +132,8 @@ export function MyBetsPage({ bets, onCashOut, cashingOutBetId, cashOutError }) {
     ...Array.from({ length: leadingDays }, () => null),
     ...Array.from({ length: monthDays }, (_, index) => new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), index + 1)),
   ];
+
+  if (loading) return <MyBetsSkeleton />;
 
   const selectDatePreset = (filter) => {
     setDateFilter(filter);
@@ -250,6 +252,23 @@ export function MyBetsPage({ bets, onCashOut, cashingOutBetId, cashOutError }) {
           </p>
         </section>
       )}
+    </PageShell>
+  );
+}
+
+function MyBetsSkeleton() {
+  return (
+    <PageShell>
+      <div className="flex items-center gap-3">
+        <div className="h-7 w-7 rounded-full bg-[#22252e] skeleton-shimmer" />
+        <div className="h-8 w-40 rounded bg-[#22252e] skeleton-shimmer" />
+      </div>
+
+      <div className="h-16 rounded-md bg-[#22252e] skeleton-shimmer" />
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-72 rounded-lg bg-[#22232c] skeleton-shimmer" />)}
+      </section>
     </PageShell>
   );
 }

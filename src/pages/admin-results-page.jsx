@@ -4,7 +4,9 @@ import { SETTLEMENT_STATUSES } from '../config/app-config';
 import { CurrencyAmount } from '../components/common/CurrencyAmount';
 import { PageShell } from '../components/layout/FeedbackStates';
 
-export function AdminResultsPage({ isAdmin, adminBets, adminBetsLoading, adminError, settlingLegId, onRefreshAdminBets, onSettleBetGroup }) {
+export function AdminResultsPage({ accountLoading, isAdmin, adminBets, adminBetsLoading, adminError, settlingLegId, onRefreshAdminBets, onSettleBetGroup }) {
+  if (accountLoading) return <AdminResultsSkeleton />;
+
   if (!isAdmin) {
     return (
       <PageShell>
@@ -152,6 +154,27 @@ export function AdminResultsPage({ isAdmin, adminBets, adminBetsLoading, adminEr
           <p className="mx-auto mt-2 max-w-lg text-sm text-[#8a8e99]">New open bets will appear here for manual settlement.</p>
         </section>
       )}
+    </PageShell>
+  );
+}
+
+function AdminResultsSkeleton() {
+  return (
+    <PageShell>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-7 w-7 rounded-full bg-[#22252e] skeleton-shimmer" />
+          <div className="space-y-2">
+            <div className="h-8 w-52 rounded bg-[#22252e] skeleton-shimmer" />
+            <div className="h-4 w-80 max-w-[70vw] rounded bg-[#22252e] skeleton-shimmer" />
+          </div>
+        </div>
+        <div className="h-9 w-36 rounded-md bg-[#22252e] skeleton-shimmer" />
+      </div>
+
+      <section className="grid gap-3 lg:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-72 rounded-md bg-[#22252e] skeleton-shimmer" />)}
+      </section>
     </PageShell>
   );
 }

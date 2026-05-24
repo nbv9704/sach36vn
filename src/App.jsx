@@ -23,7 +23,7 @@ import {
 
 const service = new MatchBettingService();
 
-function AppRoutes({ matchesByCategory, loading, error, refreshAll, onSelectOdd, selections, searchQuery, favoriteMatchIds, onToggleFavorite, quickBetFeedbackId, balance, bets, rewardsState, claimingRewardId, rewardError, onClaimTimeReward, onClaimTaskReward, onCashOut, cashingOutBetId, cashOutError, isAdmin, adminBets, adminBetsLoading, adminError, settlingLegId, onRefreshAdminBets, onSettleBetGroup }) {
+function AppRoutes({ matchesByCategory, loading, error, refreshAll, onSelectOdd, selections, searchQuery, favoriteMatchIds, onToggleFavorite, quickBetFeedbackId, accountLoading, balance, bets, rewardsState, claimingRewardId, rewardError, onClaimTimeReward, onClaimTaskReward, onCashOut, cashingOutBetId, cashOutError, isAdmin, adminBets, adminBetsLoading, adminError, settlingLegId, onRefreshAdminBets, onSettleBetGroup }) {
   return (
     <Routes>
       <Route path="/" element={<HomePage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
@@ -31,9 +31,9 @@ function AppRoutes({ matchesByCategory, loading, error, refreshAll, onSelectOdd,
       <Route path="/favorites" element={<FavoritesPage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
       <Route path="/category/:id" element={<CategoryPage matchesByCategory={matchesByCategory} loading={loading} error={error} onRetry={refreshAll} onSelectOdd={onSelectOdd} selections={selections} searchQuery={searchQuery} favoriteMatchIds={favoriteMatchIds} onToggleFavorite={onToggleFavorite} quickBetFeedbackId={quickBetFeedbackId} />} />
       <Route path="/match/:id" element={<MatchDetailPage matchesByCategory={matchesByCategory} onSelectOdd={onSelectOdd} selections={selections} quickBetFeedbackId={quickBetFeedbackId} />} />
-      <Route path="/balance" element={<BalancePage balance={balance} bets={bets} rewardsState={rewardsState} claimingRewardId={claimingRewardId} rewardError={rewardError} onClaimTimeReward={onClaimTimeReward} onClaimTaskReward={onClaimTaskReward} />} />
-      <Route path="/my-bets" element={<MyBetsPage bets={bets} onCashOut={onCashOut} cashingOutBetId={cashingOutBetId} cashOutError={cashOutError} />} />
-      <Route path="/admin/results" element={<AdminResultsPage isAdmin={isAdmin} adminBets={adminBets} adminBetsLoading={adminBetsLoading} adminError={adminError} settlingLegId={settlingLegId} onRefreshAdminBets={onRefreshAdminBets} onSettleBetGroup={onSettleBetGroup} />} />
+      <Route path="/balance" element={<BalancePage loading={accountLoading} balance={balance} bets={bets} rewardsState={rewardsState} claimingRewardId={claimingRewardId} rewardError={rewardError} onClaimTimeReward={onClaimTimeReward} onClaimTaskReward={onClaimTaskReward} />} />
+      <Route path="/my-bets" element={<MyBetsPage loading={accountLoading} bets={bets} onCashOut={onCashOut} cashingOutBetId={cashingOutBetId} cashOutError={cashOutError} />} />
+      <Route path="/admin/results" element={<AdminResultsPage accountLoading={accountLoading} isAdmin={isAdmin} adminBets={adminBets} adminBetsLoading={adminBetsLoading} adminError={adminError} settlingLegId={settlingLegId} onRefreshAdminBets={onRefreshAdminBets} onSettleBetGroup={onSettleBetGroup} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -44,6 +44,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
+  const [accountLoading, setAccountLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [selections, setSelections] = useState([]);
   const [favoriteMatchIds, setFavoriteMatchIds] = useState(loadFavoriteMatchIds);
@@ -66,26 +67,33 @@ function App() {
   const [settlingLegId, setSettlingLegId] = useState('');
 
   const loadAccountData = useCallback(async (currentUser) => {
+    setAccountLoading(true);
+
     if (!currentUser) {
       setBalance(0);
       setBets([]);
       setRewardsState({ timeRewards: {}, taskClaims: {} });
       setIsAdmin(false);
       setAdminBets([]);
+      setAccountLoading(false);
       return;
     }
 
-    const [walletBalance, betHistory, rewards, adminStatus] = await Promise.all([
-      getWalletBalance(),
-      getBetHistory(),
-      getRewardsState(),
-      isCurrentUserAdmin(),
-    ]);
+    try {
+      const [walletBalance, betHistory, rewards, adminStatus] = await Promise.all([
+        getWalletBalance(),
+        getBetHistory(),
+        getRewardsState(),
+        isCurrentUserAdmin(),
+      ]);
 
-    setBalance(walletBalance);
-    setBets(betHistory);
-    setRewardsState(rewards);
-    setIsAdmin(adminStatus);
+      setBalance(walletBalance);
+      setBets(betHistory);
+      setRewardsState(rewards);
+      setIsAdmin(adminStatus);
+    } finally {
+      setAccountLoading(false);
+    }
   }, []);
 
   const refreshAdminBets = useCallback(async () => {
@@ -379,6 +387,7 @@ function App() {
       favoriteMatchIds={favoriteMatchIds}
       onToggleFavorite={handleToggleFavorite}
       quickBetFeedbackId={quickBetFeedbackId}
+      accountLoading={accountLoading}
       balance={balance}
       bets={bets}
       rewardsState={rewardsState}
@@ -397,7 +406,7 @@ function App() {
       onRefreshAdminBets={refreshAdminBets}
       onSettleBetGroup={handleSettleBetGroup}
     />
-  ), [adminBets, adminBetsLoading, adminError, balance, bets, cashOutError, cashingOutBetId, claimingRewardId, error, favoriteMatchIds, handleCashOut, handleClaimTaskReward, handleClaimTimeReward, handleSelectOdd, handleSettleBetGroup, handleToggleFavorite, isAdmin, loading, matchesByCategory, quickBetFeedbackId, refreshAdminBets, refreshAll, rewardError, rewardsState, searchQuery, selections, settlingLegId]);
+  ), [accountLoading, adminBets, adminBetsLoading, adminError, balance, bets, cashOutError, cashingOutBetId, claimingRewardId, error, favoriteMatchIds, handleCashOut, handleClaimTaskReward, handleClaimTimeReward, handleSelectOdd, handleSettleBetGroup, handleToggleFavorite, isAdmin, loading, matchesByCategory, quickBetFeedbackId, refreshAdminBets, refreshAll, rewardError, rewardsState, searchQuery, selections, settlingLegId]);
 
   return (
     <BrowserRouter>
