@@ -1,4 +1,5 @@
-import { AlertTriangle, BadgeDollarSign, History } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertTriangle, BadgeDollarSign, ExternalLink, History } from 'lucide-react';
 import { SETTLEMENT_STATUSES } from '../config/app-config';
 import { CurrencyAmount } from '../components/common/CurrencyAmount';
 import { PageShell } from '../components/layout/FeedbackStates';
@@ -84,6 +85,26 @@ export function AdminResultsPage({ isAdmin, adminBets, adminBetsLoading, adminEr
                   <p className="truncate text-xs font-bold uppercase text-[#8a8e99]">{selection.sport} • {selection.tournament}</p>
                   <p className="mt-1 truncate text-sm font-bold text-white">{selection.matchTitle}</p>
                   <p className="mt-1 text-xs text-[#8a8e99]">{selection.marketName} • {selection.outcomeName} @ {Number(selection.odds).toFixed(2)}</p>
+                  <div className="mt-3 grid gap-2 text-[11px] text-[#8a8e99] sm:grid-cols-2">
+                    <p className="truncate"><span className="font-black uppercase text-[#ffd200]">Event</span> {selection.matchId}</p>
+                    <p className="truncate"><span className="font-black uppercase text-[#ffd200]">Market</span> {selection.marketId}</p>
+                    <p className="truncate"><span className="font-black uppercase text-[#ffd200]">Outcome</span> {selection.outcomeId}</p>
+                    <p className="truncate"><span className="font-black uppercase text-[#ffd200]">Ticket legs</span> {rows.map((row) => `${row.selectionIndex}/${row.selectionCount}`).join(', ')}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <Link to={`/match/${selection.matchId}`} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#1a1c24] px-3 py-2 text-xs font-black uppercase text-white hover:bg-[#2a2e38]">
+                    Open Match
+                    <ExternalLink size={13} />
+                  </Link>
+                  <a href={`https://www.google.com/search?q=${encodeURIComponent(buildAdminResultSearch(selection))}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#1a1c24] px-3 py-2 text-xs font-black uppercase text-white hover:bg-[#2a2e38]">
+                    Search Result
+                    <ExternalLink size={13} />
+                  </a>
+                  <button type="button" onClick={() => copyAdminResultSearch(selection)} className="rounded-md bg-[#1a1c24] px-3 py-2 text-xs font-black uppercase text-white hover:bg-[#2a2e38]">
+                    Copy Query
+                  </button>
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[#2a2e38] pt-3 text-xs">
@@ -133,4 +154,18 @@ export function AdminResultsPage({ isAdmin, adminBets, adminBetsLoading, adminEr
       )}
     </PageShell>
   );
+}
+
+function buildAdminResultSearch(selection) {
+  return [
+    selection.matchTitle,
+    selection.tournament,
+    selection.sport,
+    selection.marketName,
+    'result',
+  ].filter(Boolean).join(' ');
+}
+
+function copyAdminResultSearch(selection) {
+  window.navigator.clipboard?.writeText(buildAdminResultSearch(selection));
 }

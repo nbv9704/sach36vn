@@ -37,6 +37,53 @@ export async function isCurrentUserAdmin() {
   return Boolean(data);
 }
 
+export async function getRewardsState() {
+  const { data, error } = await supabase.rpc('get_rewards_state');
+
+  if (error) {
+    throw new Error(error.message || 'Failed to load rewards');
+  }
+
+  return {
+    timeRewards: data?.timeRewards || {},
+    taskClaims: data?.taskClaims || {},
+  };
+}
+
+export async function claimTimeReward(rewardType) {
+  const { data, error } = await supabase.rpc('claim_time_reward', {
+    p_reward_type: rewardType,
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Failed to claim reward');
+  }
+
+  return {
+    rewardType: data.rewardType,
+    amount: Number(data.amount || 0),
+    balance: Number(data.balance || 0),
+    claimedAt: data.claimedAt,
+  };
+}
+
+export async function claimTaskReward(taskId) {
+  const { data, error } = await supabase.rpc('claim_task_reward', {
+    p_task_id: taskId,
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Failed to claim task');
+  }
+
+  return {
+    taskId: data.taskId,
+    amount: Number(data.amount || 0),
+    balance: Number(data.balance || 0),
+    claimedAt: data.claimedAt,
+  };
+}
+
 export async function getBetHistory() {
   const { data, error } = await supabase
     .from('bets')
