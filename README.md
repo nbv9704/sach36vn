@@ -29,16 +29,6 @@ For local function development, you can optionally bypass `supabase.functions.in
 VITE_MATCHBETTING_FUNCTION_URL=http://localhost:54321/functions/v1/matchbetting
 ```
 
-## Edge Function env
-
-The function has safe defaults, but these can be configured in Supabase secrets:
-
-```env
-BETBY_BASE_URL=https://api-h-c7818b61-608.sptpub.com
-BETBY_BRAND_ID=2432911154364948480
-BETBY_LANGUAGE=en
-```
-
 ## Run frontend
 
 ```powershell
