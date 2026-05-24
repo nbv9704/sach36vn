@@ -23,12 +23,6 @@ VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-For local function development, you can optionally bypass `supabase.functions.invoke` with:
-
-```env
-VITE_MATCHBETTING_FUNCTION_URL=http://localhost:54321/functions/v1/matchbetting
-```
-
 ## Run frontend
 
 ```powershell
